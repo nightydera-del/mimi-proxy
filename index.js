@@ -5,9 +5,12 @@ app.use(express.json());
 app.post('/mimi', async (req, res) => {
   try {
     const { history, message } = req.body;
+    
+    const safeHistory = Array.isArray(history) ? history : [];
+    
     const messages = [
-      ...history,
-      { role: 'user', content: message }
+      ...safeHistory,
+      { role: 'user', content: String(message) }
     ];
 
     const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
@@ -37,9 +40,16 @@ You sometimes mention the hill, the windmill turning slowly, or the hay around y
     });
 
     const data = await response.json();
+    console.log('Groq response:', JSON.stringify(data));
+    
+    if (!data.choices || !data.choices[0]) {
+      console.error('Bad response:', JSON.stringify(data));
+      return res.json({ reply: '...' });
+    }
+    
     res.json({ reply: data.choices[0].message.content });
   } catch (err) {
-    console.error(err);
+    console.error('Error:', err);
     res.json({ reply: '...' });
   }
 });
